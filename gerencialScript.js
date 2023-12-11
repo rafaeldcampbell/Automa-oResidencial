@@ -1,4 +1,7 @@
-const registrationFields = ["Nome", "Ação"];
+const registrationFields = [["Device Id", "device_id", "cafeteira001"], 
+                            ["Entity Name", "entity_name", "Cafeteira:001"], 
+                            ["Entity Type", "entity_type", "Thing or Sensor"], 
+                            ["Comandos", "commands", "cafelongo, cafecurto, cafestandby"]];
 
 function updateDeviceList() {
 
@@ -38,8 +41,86 @@ function deleteDevice(id) { // TODO: CHAMAR CURL E DELETAR OBJETO
     return;
 }
 
-function createDevice(data) { // TODO: CHAMAR CURL E CADASTRAR OBJETO
-    console.log(data);
+function createDevice(data) {
+
+    // curl -iX POST \
+    // 'http://iot.intelirede.com.br:4041/iot/devices' \
+    // -H 'Content-Type: application/json' \
+    // -H 'fiware-service: openiot' \
+    // -H 'fiware-servicepath: /' \
+    // -d '{
+    // "devices": [
+    //     {
+    //     "device_id": "cafeteira001",
+    //     "entity_name": "urn:ngsi-ld:Cafeteira:001",
+    //     "entity_type": "Cafeteira",
+    //     "protocol": "PDI-IoTA-UltraLight",
+    //     "transport": "HTTP",
+    //     "endpoint": "http://iot-sensors:3001/iot/cafeteira001",
+    //     "commands": [
+    //         {"name": "cafelongo","type": "command"},
+    //         {"name": "cafecurto","type": "command"},
+    //         {"name": "cafestandby","type": "command"}
+    //     ],
+    //     "attributes": [
+    //         {"object_id": "s", "name": "state", "type":"Text"}
+    //     ],
+    //     "static_attributes": [
+    //         {"name": "refCasa", "type": "Relationship","value": "urn:ngsi-ld:Casa:001"}
+    //     ]
+    //     }
+    // ]
+    // }'
+
+
+    var commands = [];
+    if (data['commands'].length > 0) {
+        data['commands'].split(",").forEach((entry) => {
+            console.log(entry);
+            commands.push({"name": entry.trim(),"type": "command"});
+        });
+    }
+
+    let vData = {
+        'devices': [{
+              "device_id": data['device_id'],
+              "entity_name": "urn:ngsi-ld:" + data['entity_name'],
+              "entity_type": data['entity_type'],
+              "protocol": "PDI-IoTA-UltraLight",
+              "transport": "HTTP",
+              "endpoint": "http://iot-sensors:3001/iot/" + data['device_id'],
+              "commands": commands,
+               "attributes": [
+                {"object_id": "s", "name": "state", "type":"Text"}
+               ],
+               "static_attributes": [
+                 {"name": "refCasa", "type": "Relationship","value": "urn:ngsi-ld:Casa:001"}
+               ]
+            }]
+    };
+
+    console.log(JSON.stringify(vData));
+
+    $.ajax({
+        url: 'http://iot.intelirede.com.br:4041/iot/devices',
+        headers: {
+            'Content-Type': 'application/json',
+            'fiware-service': 'openiot',
+            'fiware-servicepath': '/'
+        },
+        type: "POST",
+        dataType: "json",
+        async: false,
+        data: JSON.stringify(vData),
+        success: function (result) {
+            console.log(result);
+        },
+        error: function(XMLHttpRequest, textStatus, errorThrown) {
+            console.log(textStatus);
+            console.log(errorThrown);
+         }
+    });
+
     initListOfTasks();
     return;
 }
@@ -79,13 +160,14 @@ function createDeviceButton() {
         let inputEntry  = document.createElement('div');
         inputEntry.className = "d-flex";
         let inputEntryLabel  = document.createElement('div');
-        inputEntryLabel.innerHTML = "<b>" + entry + ":</b>";
-        inputEntryLabel.style = "width: 20%";
+        inputEntryLabel.innerHTML = "<b>" + entry[0] + ":</b>";
+        inputEntryLabel.style = "width: 30%";
         inputEntry.appendChild(inputEntryLabel);
         var input = document.createElement("input");
         input.setAttribute('type', 'text');
         input.style = "margin-left: 10px";
-        input.id = entry;
+        input.placeholder = entry[2];
+        input.id = entry[1];
         inputList.push(input);
         inputEntry.appendChild(input);
         body.appendChild(inputEntry);
@@ -98,9 +180,9 @@ function createDeviceButton() {
     deleteButton.className = 'btn btn-success';
     deleteButton.onclick = function(){
         createActionModal.hide();
-        let data = [];
+        let data = {};
         inputList.forEach((entry) => {
-            data.push([entry.id, entry.value])
+            data[entry.id] = entry.value;
         });
         createDevice(data);
     };

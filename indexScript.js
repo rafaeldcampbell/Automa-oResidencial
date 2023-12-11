@@ -2,6 +2,7 @@ var requestLog = [];
 const updateInterval = 30000;
 
 function updateDeviceList() {
+    
     updateRequestLog("Requisição", "curl -X GET \
     'http://iot.intelirede.com.br:4041/iot/devices' \
     -H 'fiware-service: openiot' \
@@ -32,7 +33,7 @@ function updateDeviceList() {
             return {};
          }
     });
-    updateRequestLog("Retorno", JSON.stringify(resp).slice(0, 100) + "...");
+    updateRequestLog("Retorno", JSON.stringify(resp.responseJSON).slice(0, 100) + "...");
     return resp;
 };
 
@@ -59,16 +60,46 @@ function updateRequestLog(type, text) {
     document.getElementById("requestLogText").innerHTML = requestLogHTML;
 };
 
-function triggerAction (id, command) {
-    console.log("trigger em " + id + " para " + command); // TODO: CHAMAR CURL E DISPARAR AÇÃO
-    updateRequestLog("Requisição", "CURL trigger action. Trigger em " + id + " para " + command);
+function triggerAction (id, name, command) {
+    // curl -iX POST \
+    // 'http://iot.intelirede.com.br:7896/iot/d?k=4jggokgpepnvsb2uv4s40d59ov&i=cafeteira001' \
+    // -H 'Content-Type: text/plain' \
+    // -d 's|CAFESTANDBY'
+
+    let vURL = 'http://iot.intelirede.com.br:7896/iot/d?k=4jggokgpepnvsb2uv4s40d59ov&i=' + name;
+    let vData = 's|' + command.toUpperCase();
+
+    updateRequestLog("Requisição", "curl -iX POST \
+    '" + vURL + "' \
+    -H 'Content-Type: text/plain' \
+    -d '" + vData + "'");
+
+    let resp = $.ajax({
+        url: vURL,
+        headers: {
+            'Content-Type': 'text/plain'
+        },
+        type: "POST",
+        dataType: 'text',
+        async: false,
+        data: vData,
+        success: function (result) {
+            console.log(result);
+        },
+        error: function(XMLHttpRequest, textStatus, errorThrown) {
+            console.log(textStatus);
+            console.log(errorThrown);
+            return {};
+         }
+    });
+    updateRequestLog("Retorno", resp.status + " " + resp.statusText);
+    getDeviceStatus(id, 1);
     initListOfTasks();
 };
 
 function updateSensor (id, value) {
     console.log("update em " + id + " para " + value); // TODO: CHAMAR CURL E DISPARAR UPDATE
     updateRequestLog("Requisição", "CURL update sensor. Update em " + id + " para " + value);
-    initListOfTasks();
 };
 
 function doButtonTrigger(id, name, commands) { // opens the modal to trigger an action
@@ -83,7 +114,7 @@ function doButtonTrigger(id, name, commands) { // opens the modal to trigger an 
         button.className = 'btn btn-secondary';
         button.onclick = function(){
             confirmingActionModal.hide();
-            triggerAction(id, entry);
+            triggerAction(id, name, entry);
         };
         document.getElementById("modalButtonHolder").appendChild(button);
     });
@@ -114,15 +145,48 @@ function doButtonEdit(id, name) { // opens the modal to update a sensor's data
     };
     document.getElementById("modalButtonHolder").appendChild(button);
     editActionModal.show();
+    initListOfTasks();
 };
 
-function getDeviceStatus(id) { // TODO: CHAMAR CURL E RETORNAR STATUS
-    // curl -G -X GET \  'http://iot.intelirede.com.br:1026/v2/entities/urn:ngsi-ld:Cafeteira:001' \
-    // -d 'type=Cafeteira' \  -H 'fiware-service: openiot' \
-    // -H 'fiware-servicepath: /'
-    // updateRequestLog("Requisição", "CURL Request status. Status de " + id);
-    // updateRequestLog("Retorno", "CURL Status. Standby");
-    return "StandBy";
+function getDeviceStatus(id, log = 0) {
+    // curl -G -X GET \
+    //     'http://iot.intelirede.com.br:1026/v2/entities/urn:ngsi-ld:Cafeteira:001' \
+    //     -H 'fiware-service: openiot' \
+    //     -H 'fiware-servicepath: /'
+
+    let vURL = "http://iot.intelirede.com.br:1026/v2/entities/" + id;
+
+    if (log == 1) {
+        updateRequestLog("Requisição", "curl -G -X GET \
+        '" + vURL + "' \
+        -H 'fiware-service: openiot' \
+        -H 'fiware-servicepath: /'");
+    }
+
+    let resp = $.ajax({
+        url: vURL,
+        headers: {
+            'fiware-service': 'openiot',
+            'fiware-servicepath': '/'
+        },
+        type: "GET",
+        dataType: "json",
+        async: false,
+        data: {},
+        success: function (result) {
+            // console.log(result);
+        },
+        error: function(XMLHttpRequest, textStatus, errorThrown) {
+            console.log(textStatus);
+            console.log(errorThrown);
+            return {};
+         }
+    });
+
+    if (log == 1) {
+        updateRequestLog("Retorno", JSON.stringify(resp).slice(0, 100) + "...");
+    }
+    return resp.responseJSON.state == null ? "" : resp.responseJSON.state.value;
 }
 
 
@@ -133,7 +197,6 @@ function getDeviceStatus(id) { // TODO: CHAMAR CURL E RETORNAR STATUS
 //  ---------------------- CREATE ALL CARDS ---------------------------------------------------------------------
 let cardContainer;
 let createDeviceCard = (device) => {
-    console.log(device)
     let card = document.createElement('div');
     card.className = 'card shadow cursor-pointer';
     let cardBody = document.createElement('div');
