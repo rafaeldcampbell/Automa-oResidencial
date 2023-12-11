@@ -25,7 +25,7 @@
                 class="navbar navbar-expand-sm navbar-light bg-light"
             >
                 <div class="container">
-                    <a class="navbar-brand" href="#">Automação Reidencial</a>
+                    <a class="navbar-brand" href="#">Automação Residencial</a>
                     <button
                         class="navbar-toggler d-lg-none"
                         type="button"
@@ -43,10 +43,9 @@
                                 <a class="nav-link" href="./index.html">Home</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link active" href="#" aria-current="page"
-                                    >Cadastro
-                                    <span class="visually-hidden">(current)</span></a
-                                >
+                                <a class="nav-link active" href="#" aria-current="page">
+                                    Gerenciar
+                                    <span class="visually-hidden">(current)</span></a>
                             </li>
                         </ul>
                     </div>
@@ -54,7 +53,41 @@
             </nav>
             
         </header>
-        <main></main>
+        <main>
+            
+            <!-- Modal for action -->
+            <div id="actionModal" class="modal" tabindex="-1" role="dialog">
+                <div class="modal-dialog" role="document">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title" id="modalTitle"></h5>
+                      <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                      </button>
+                    </div>
+                    <div class="modal-body" id="modalBody"></div>
+                    <div class="modal-footer" id="modalButtonHolder"></div>
+                  </div>
+                </div>
+            </div>
+
+            <div class="container" style="height: 100vh; display: flex; margin-top: 40px;">
+                <div class="col" style="height: 100%"> <!-- request log -->
+                    <div id="requestLog" class="card shadow cursor-pointer">
+                        <div class="card-header">
+                            Gerenciar dispositivos
+                        </div>
+                        <div class="card-body">
+                            <div class="card-body">
+                                <div id="card-container"></div> <!-- devices list -->
+                            </div>
+                        </div>
+                    </div>
+                </div>  
+              </div>
+
+
+        </main>
         <footer>
             <!-- place footer here -->
         </footer>
@@ -71,4 +104,5 @@
             crossorigin="anonymous"
         ></script>
     </body>
+    <script src="gerencialScript.js"></script>
 </html>

@@ -25,7 +25,7 @@
                 class="navbar navbar-expand-sm navbar-light bg-light"
             >
                 <div class="container">
-                    <a class="navbar-brand" href="#">Automação Reidencial</a>
+                    <a class="navbar-brand" href="#">Automação Residencial</a>
                     <button
                         class="navbar-toggler d-lg-none"
                         type="button"
@@ -40,13 +40,12 @@
                     <div class="collapse navbar-collapse" id="collapsibleNavId">
                         <ul class="navbar-nav me-auto mt-2 mt-lg-0">
                             <li class="nav-item">
-                                <a class="nav-link active" href="#" aria-current="page"
-                                    >Home
-                                    <span class="visually-hidden">(current)</span></a
-                                >
+                                <a class="nav-link active" href="#" aria-current="page">
+                                    Home
+                                    <span class="visually-hidden">(current)</span></a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="./cadastro.html">Cadastro</a>
+                                <a class="nav-link" href="./gerencial.html">Gerenciar</a>
                             </li>
                         </ul>
                     </div>
@@ -55,12 +54,47 @@
         </header>
         <main>
 
-            <input 
-                id="clickMe" 
-                type="button" 
-                value="clickme" 
-                onclick="doFunction();" 
-            />
+
+            <!-- Modal for action -->
+            <div id="actionModal" class="modal" tabindex="-1" role="dialog">
+                <div class="modal-dialog" role="document">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title" id="modalTitle"></h5>
+                      <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                      </button>
+                    </div>
+                    <div class="modal-body" id="modalBody"></div>
+                    <div class="modal-footer" id="modalButtonHolder"></div>
+                  </div>
+                </div>
+            </div>
+            
+            <span class="navbar-text" style="text-align: right;">
+                <p id="lastUpdate"></p>
+            </span>
+            <div class="container" style="height: 100vh; display: flex">
+                <div class="col" style="height: 100%; margin-right: 30px"> <!-- request log -->
+                    <div class="card shadow cursor-pointer">
+                        <div class="card-header">
+                            Lista de dispositivos e sensores
+                        </div>
+                        <div class="card-body">
+                            <div id="card-container"></div> <!-- devices list -->
+                        </div>
+                    </div>
+                </div>  
+                <div class="col" style="height: 100%"> <!-- request log -->
+                    <div id="requestLog" class="card shadow cursor-pointer">
+                        <div class="card-header">
+                            Log das requisições CURL
+                        </div>
+                        <div class="card-body" id="requestLogText"></div>
+                    </div>
+                </div>  
+              </div>
+            
         
 
         </main>
@@ -78,6 +112,6 @@
             integrity="sha384-BBtl+eGJRgqQAUMxJ7pMwbEyER4l1g+O15P+16Ep7Q9Q+zqX6gSbd85u4mG4QzX+"
             crossorigin="anonymous"
         ></script>
-        <script src="action.js"></script>
+        <script src="indexScript.js"></script>
     </body>
 </html>
