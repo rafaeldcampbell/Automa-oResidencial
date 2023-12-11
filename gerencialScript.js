@@ -1,189 +1,33 @@
- 
-// function doFunction(text){
-//     $.ajax({
-//         url: 'http://iot.intelirede.com.br:1026/v2/entities',
-//         headers: {
-//             'fiware-service': 'openiot',
-//             'fiware-servicepath': '/'
-//         },
-//         type: "GET",
-//         dataType: "json",
-//         data: {
-//         },
-//         success: function (result) {
-//             console.log(result);
-//         },
-//         error: function(XMLHttpRequest, textStatus, errorThrown) {
-//             console.log(textStatus);
-//             console.log(errorThrown);
-//          }
-//     });
-// }
-var resp = {};
 const registrationFields = ["Nome", "Ação"];
 
-function updateDeviceList() { //TODO: CHAMAR CURL E ATRIBUIR JSON DE RETORNO À VARIÁVEL
-    resp = {
-        "count": 9,
-        "devices": [
-        {
-            "device_id": "sensorpressao001",
-            "service": "openiot",
-            "service_path": "/",
-            "entity_name": "urn:ngsi-ld:Sensorpressao:001",
-            "entity_type": "Sensorpressao",
-            "endpoint": "http://iot-sensors:3001/iot/sensorpressao001",
-            "polling": false,
-            "transport": "HTTP",
-            "attributes": [
-            {
-                "object_id": "s",
-                "name": "state",
-                "type": "Text"
-            }
-            ],
-            "lazy": [],
-            "commands": [],
-            "static_attributes": [
-            {
-                "name": "refCasa",
-                "type": "Relationship",
-                "value": "urn:ngsi-ld:Casa:001"
-            }
-            ],
-            "protocol": "PDI-IoTA-UltraLight",
-            "explicitAttrs": false
+function updateDeviceList() {
+
+    // curl -X GET \
+    // 'http://iot.intelirede.com.br:4041/iot/devices' \
+    // -H 'fiware-service: openiot' \
+    // -H 'fiware-servicepath: /'
+
+    return $.ajax({
+        url: 'http://iot.intelirede.com.br:4041/iot/devices',
+        headers: {
+            'fiware-service': 'openiot',
+            'fiware-servicepath': '/'
         },
-        {
-            "device_id": "cafeteira001",
-            "service": "openiot",
-            "service_path": "/",
-            "entity_name": "urn:ngsi-ld:Cafeteira:001",
-            "entity_type": "Cafeteira",
-            "endpoint": "http://iot-sensors:3001/iot/cafeteira001",
-            "polling": false,
-            "transport": "HTTP",
-            "attributes": [
-            {
-                "object_id": "s",
-                "name": "state",
-                "type": "Text"
-            }
-            ],
-            "lazy": [],
-            "commands": [
-            {
-                "object_id": "longo",
-                "name": "longo",
-                "type": "command"
-            },
-            {
-                "object_id": "curto",
-                "name": "curto",
-                "type": "command"
-            },
-            {
-                "object_id": "standby",
-                "name": "standby",
-                "type": "command"
-            }
-            ],
-            "static_attributes": [
-            {
-                "name": "refStore",
-                "type": "Relationship",
-                "value": "urn:ngsi-ld:Store:001"
-            }
-            ],
-            "protocol": "PDI-IoTA-UltraLight",
-            "explicitAttrs": false
+        type: "GET",
+        dataType: "json",
+        async: false,
+        data: {
         },
-        {
-            "device_id": "sensorpressao002",
-            "service": "openiot",
-            "service_path": "/",
-            "entity_name": "Thing:sensorpressao002",
-            "entity_type": "Thing",
-            "transport": "HTTP",
-            "attributes": [],
-            "lazy": [],
-            "commands": [],
-            "static_attributes": []
+        success: function (result) {
+            return result;
         },
-        {
-            "device_id": "sensorpressao003",
-            "service": "openiot",
-            "service_path": "/",
-            "entity_name": "Thing:sensorpressao003",
-            "entity_type": "Thing",
-            "transport": "HTTP",
-            "attributes": [],
-            "lazy": [],
-            "commands": [],
-            "static_attributes": []
-        },
-        {
-            "device_id": "sensorpressao004",
-            "service": "openiot",
-            "service_path": "/",
-            "entity_name": "Thing:sensorpressao004",
-            "entity_type": "Thing",
-            "transport": "HTTP",
-            "attributes": [],
-            "lazy": [],
-            "commands": [],
-            "static_attributes": []
-        },
-        {
-            "device_id": "sensorpresenca001",
-            "service": "openiot",
-            "service_path": "/",
-            "entity_name": "Thing:sensorpresenca001",
-            "entity_type": "Thing",
-            "transport": "HTTP",
-            "attributes": [],
-            "lazy": [],
-            "commands": [],
-            "static_attributes": []
-        },
-        {
-            "device_id": "sensorpresenca002",
-            "service": "openiot",
-            "service_path": "/",
-            "entity_name": "Thing:sensorpresenca002",
-            "entity_type": "Thing",
-            "transport": "HTTP",
-            "attributes": [],
-            "lazy": [],
-            "commands": [],
-            "static_attributes": []
-        },
-        {
-            "device_id": "sensorpresenca003",
-            "service": "openiot",
-            "service_path": "/",
-            "entity_name": "Thing:sensorpresenca003",
-            "entity_type": "Thing",
-            "transport": "HTTP",
-            "attributes": [],
-            "lazy": [],
-            "commands": [],
-            "static_attributes": []
-        },
-        {
-            "device_id": "sensorpresenca004",
-            "service": "openiot",
-            "service_path": "/",
-            "entity_name": "Thing:sensorpresenca004",
-            "entity_type": "Thing",
-            "transport": "HTTP",
-            "attributes": [],
-            "lazy": [],
-            "commands": [],
-            "static_attributes": []
-        }
-        ]
-    };
+        error: function(XMLHttpRequest, textStatus, errorThrown) {
+            console.log(textStatus);
+            console.log(errorThrown);
+            return {};
+         }
+    });
+
 };
 
 
@@ -332,7 +176,7 @@ let createDeviceCard = (device) => {
 }
 
 let initListOfTasks = () => {
-    updateDeviceList();
+    var resp = updateDeviceList();
     if (cardContainer) {
         cardContainer.innerHTML = '';
     }
@@ -347,8 +191,8 @@ let initListOfTasks = () => {
     };
     cardContainer.appendChild(insertButton);
 
-    Object.entries(resp.devices).forEach((entry) => {
-        createDeviceCard(entry[1]);
+    resp.responseJSON.devices.forEach((entry) => {
+        createDeviceCard(entry);
     });
     console.log("Atualizando tela");
 };
