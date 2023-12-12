@@ -2,11 +2,150 @@ const registrationFields = [["Device Id", "device_id", "cafeteira001"],
                             ["Entity Name", "entity_name", "Cafeteira:001"], 
                             ["Entity Type", "entity_type", "Thing or Sensor"], 
                             ["Comandos", "commands", "cafelongo, cafecurto, cafestandby"]];
+const deviceList = ["Cafeteira", "Cortina", "Robo Aspirador", "Maquina de Lavar", "Sensor de pressão", "Sensor de presença"]
+
+function getDeviceRegistrationData(device, id) {
+    if (device == "Cafeteira") {
+        return '{ \
+            "devices": [ \
+              { \
+                "device_id": "cafeteira' + id + '", \
+                "entity_name": "urn:ngsi-ld:Cafeteira:' + id + '", \
+                "entity_type": "Cafeteira", \
+                "protocol": "PDI-IoTA-UltraLight", \
+                "transport": "HTTP", \
+                "endpoint": "http://iot-sensors:3001/iot/cafeteira' + id + '", \
+                "commands": [ \
+                  {"name": "cafelongo","type": "command"}, \
+                  {"name": "cafecurto","type": "command"}, \
+                  {"name": "cafestandby","type": "command"} \
+                 ], \
+                 "attributes": [ \
+                  {"object_id": "s", "name": "state", "type":"Text"} \
+                 ], \
+                 "static_attributes": [ \
+                   {"name": "refCasa", "type": "Relationship","value": "urn:ngsi-ld:Casa:001"} \
+                 ] \
+              } \
+            ] \
+          }'
+    } else if (device == "Cortina") {
+        return '{ \
+            "devices": [ \
+              { \
+                "device_id": "cortina' + id + '", \
+                "entity_name": "urn:ngsi-ld:Cortina:' + id + '", \
+                "entity_type": "Cortina", \
+                "protocol": "PDI-IoTA-UltraLight", \
+                "transport": "HTTP", \
+                "endpoint": "http://iot-sensors:3001/iot/cortina' + id + '", \
+                "commands": [ \
+                  {"name": "cortinaabrir","type": "command"}, \
+                  {"name": "cortinafechar","type": "command"}, \
+                  {"name": "cortinastandby","type": "command"} \
+                 ], \
+                 "attributes": [ \
+                  {"object_id": "s", "name": "state", "type":"Text"} \
+                 ], \
+                 "static_attributes": [ \
+                   {"name": "refCasa", "type": "Relationship","value": "urn:ngsi-ld:Casa:001"} \
+                 ] \
+              } \
+            ] \
+          }'
+    } else if (device == "Robo Aspirador") {
+        return '{ \
+            "devices": [ \
+              { \
+                "device_id": "roboaspirador' + id + '", \
+                "entity_name": "urn:ngsi-ld:Roboaspirador:' + id + '", \
+                "entity_type": "Roboaspirador", \
+                "protocol": "PDI-IoTA-UltraLight", \
+                "transport": "HTTP", \
+                "endpoint": "http://iot-sensors:3001/iot/roboaspirador' + id + '", \
+                "commands": [ \
+                  {"name": "roborapida","type": "command"}, \
+                  {"name": "robodetalhada","type": "command"}, \
+                  {"name": "robostandby","type": "command"} \
+                 ], \
+                 "attributes": [ \
+                  {"object_id": "s", "name": "state", "type":"Text"} \
+                 ], \
+                 "static_attributes": [ \
+                   {"name": "refCasa", "type": "Relationship","value": "urn:ngsi-ld:Casa:001"} \
+                 ] \
+              } \
+            ] \
+          }'
+    } else if (device == "Maquina de Lavar") {
+        return '{ \
+            "devices": [ \
+              { \
+                "device_id": "maqdelavar' + id + '", \
+                "entity_name": "urn:ngsi-ld:Maqdelavar:' + id + '", \
+                "entity_type": "Maqdelavar", \
+                "protocol": "PDI-IoTA-UltraLight", \
+                "transport": "HTTP", \
+                "endpoint": "http://iot-sensors:3001/iot/maqdelavar' + id + '", \
+                "commands": [ \
+                  {"name": "maqlavcurto","type": "command"}, \
+                  {"name": "maqlavlongo","type": "command"}, \
+                  {"name": "maqlavstandby","type": "command"} \
+                 ], \
+                 "attributes": [ \
+                  {"object_id": "s", "name": "state", "type":"Text"} \
+                 ], \
+                 "static_attributes": [ \
+                   {"name": "refCasa", "type": "Relationship","value": "urn:ngsi-ld:Casa:001"} \
+                 ] \
+              } \
+            ] \
+          }'
+    } else if (device == "Sensor de pressão") {
+        return '{ \
+            "devices": [ \
+            { \
+                "device_id": "Sensorpressao' + id + '", \
+                "entity_name": "urn:ngsi-ld:Sensorpressao:' + id + '", \
+                "entity_type": "Sensorpressao", \
+                "protocol": "PDI-IoTA-UltraLight", \
+                "transport": "HTTP", \
+                "endpoint": "http://iot-sensors:3001/iot/sensorpressao' + id + '", \
+                "attributes": [ \
+                {"object_id": "s", "name": "state", "type":"Text"} \
+                ], \
+                "static_attributes": [ \
+                {"name": "refCasa", "type": "Relationship","value": "urn:ngsi-ld:Casa:001"} \
+                ] \
+            } \
+            ] \
+        }'
+    } else if (device == "Sensor de presença") {
+        return '{ \
+            "devices": [ \
+            { \
+                "device_id": "Sensorpresenca' + id + '", \
+                "entity_name": "urn:ngsi-ld:Sensorpresenca:' + id + '", \
+                "entity_type": "Sensorpresenca", \
+                "protocol": "PDI-IoTA-UltraLight", \
+                "transport": "HTTP", \
+                "endpoint": "http://iot-sensors:3001/iot/sensorpresenca' + id + '", \
+                "attributes": [ \
+                {"object_id": "s", "name": "state", "type":"Text"} \
+                ], \
+                "static_attributes": [ \
+                {"name": "refCasa", "type": "Relationship","value": "urn:ngsi-ld:Casa:001"} \
+                ] \
+            } \
+            ] \
+        }'
+    } else { return ''}
+}
 
 function updateDeviceList() {
 
-    // curl -X GET \
-    // 'http://iot.intelirede.com.br:4041/iot/devices' \
+    // curl -G -X GET \
+    // 'http://iot.intelirede.com.br:1026/v2/entities' \
     // -H 'fiware-service: openiot' \
     // -H 'fiware-servicepath: /'
 
@@ -41,7 +180,7 @@ function deleteDevice(id) { // TODO: CHAMAR CURL E DELETAR OBJETO
     return;
 }
 
-function createDevice(data) {
+function createDevice(device, id) {
 
     // curl -iX POST \
     // 'http://iot.intelirede.com.br:4041/iot/devices' \
@@ -72,34 +211,7 @@ function createDevice(data) {
     // ]
     // }'
 
-
-    var commands = [];
-    if (data['commands'].length > 0) {
-        data['commands'].split(",").forEach((entry) => {
-            console.log(entry);
-            commands.push({"name": entry.trim(),"type": "command"});
-        });
-    }
-
-    let vData = {
-        'devices': [{
-              "device_id": data['device_id'],
-              "entity_name": "urn:ngsi-ld:" + data['entity_name'],
-              "entity_type": data['entity_type'],
-              "protocol": "PDI-IoTA-UltraLight",
-              "transport": "HTTP",
-              "endpoint": "http://iot-sensors:3001/iot/" + data['device_id'],
-              "commands": commands,
-               "attributes": [
-                {"object_id": "s", "name": "state", "type":"Text"}
-               ],
-               "static_attributes": [
-                 {"name": "refCasa", "type": "Relationship","value": "urn:ngsi-ld:Casa:001"}
-               ]
-            }]
-    };
-
-    console.log(JSON.stringify(vData));
+    let vData = getDeviceRegistrationData(device, id);
 
     $.ajax({
         url: 'http://iot.intelirede.com.br:4041/iot/devices',
@@ -111,7 +223,7 @@ function createDevice(data) {
         type: "POST",
         dataType: "json",
         async: false,
-        data: JSON.stringify(vData),
+        data: vData,
         success: function (result) {
             console.log(result);
         },
@@ -155,38 +267,29 @@ function createDeviceButton() {
 
     document.getElementById("modalBody").innerHTML = "";
     let body  = document.createElement('div');
-    var inputList = [];
-    registrationFields.forEach((entry) => {
-        let inputEntry  = document.createElement('div');
-        inputEntry.className = "d-flex";
-        let inputEntryLabel  = document.createElement('div');
-        inputEntryLabel.innerHTML = "<b>" + entry[0] + ":</b>";
-        inputEntryLabel.style = "width: 30%";
-        inputEntry.appendChild(inputEntryLabel);
-        var input = document.createElement("input");
-        input.setAttribute('type', 'text');
-        input.style = "margin-left: 10px";
-        input.placeholder = entry[2];
-        input.id = entry[1];
-        inputList.push(input);
-        inputEntry.appendChild(input);
-        body.appendChild(inputEntry);
-    });
+    let dropdownMenu = document.createElement('select')
+    dropdownMenu.className = "custom-select";
+    dropdownMenu.id = "dropdownMenu";
+    var innerHTML = "";
+    deviceList.forEach((entry) => {innerHTML = innerHTML + '<option selected>' + entry + '</option>'});
+    dropdownMenu.innerHTML = innerHTML;
+    body.appendChild(dropdownMenu);
+    var input = document.createElement("input");
+    input.setAttribute('type', 'text');
+    input.style = "margin-left: 10px";
+    input.placeholder = "Código (ex.: 001)";
+    body.appendChild(input);
     document.getElementById("modalBody").appendChild(body);
 
     document.getElementById("modalButtonHolder").innerHTML = "";
-    let deleteButton = document.createElement('button');
-    deleteButton.innerText = "Cadastrar";
-    deleteButton.className = 'btn btn-success';
-    deleteButton.onclick = function(){
+    let createButton = document.createElement('button');
+    createButton.innerText = "Cadastrar";
+    createButton.className = 'btn btn-success';
+    createButton.onclick = function(){
         createActionModal.hide();
-        let data = {};
-        inputList.forEach((entry) => {
-            data[entry.id] = entry.value;
-        });
-        createDevice(data);
+        createDevice(dropdownMenu.value, input.value);
     };
-    document.getElementById("modalButtonHolder").appendChild(deleteButton);
+    document.getElementById("modalButtonHolder").appendChild(createButton);
     let cancelButton = document.createElement('button');
     cancelButton.innerText = "Cancelar";
     cancelButton.className = 'btn btn-secondary';
