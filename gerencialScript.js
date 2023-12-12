@@ -124,7 +124,7 @@ function getDeviceRegistrationData(device, id) {
         return '{ \
             "devices": [ \
             { \
-                "device_id": "Sensorpresenca' + id + '", \
+                "device_id": "sensorpresenca' + id + '", \
                 "entity_name": "urn:ngsi-ld:Sensorpresenca:' + id + '", \
                 "entity_type": "Sensorpresenca", \
                 "protocol": "PDI-IoTA-UltraLight", \
