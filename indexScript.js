@@ -1,20 +1,22 @@
 var requestLog = [];
-const updateInterval = 30000;
+const updateInterval = 2000;
 
-function updateDeviceList() {
+function updateDeviceList(log = 0) {
     
-    updateRequestLog("Requisição", "curl -X GET \
-    'http://iot.intelirede.com.br:4041/iot/devices' \
-    -H 'fiware-service: openiot' \
-    -H 'fiware-servicepath: /'");
+    if (log == 1) {
+        updateRequestLog("Requisição", "curl -G -X GET \
+        'http://iot.intelirede.com.br:1026/v2/entities' \
+        -H 'fiware-service: openiot' \
+        -H 'fiware-servicepath: /'");
+    }
 
-    // curl -X GET \
-    // 'http://iot.intelirede.com.br:4041/iot/devices' \
+    // curl -G -X GET \
+    // 'http://iot.intelirede.com.br:1026/v2/entities' \
     // -H 'fiware-service: openiot' \
     // -H 'fiware-servicepath: /'
 
     let resp = $.ajax({
-        url: 'http://iot.intelirede.com.br:4041/iot/devices',
+        url: 'http://iot.intelirede.com.br:1026/v2/entities',
         headers: {
             'fiware-service': 'openiot',
             'fiware-servicepath': '/'
@@ -33,7 +35,9 @@ function updateDeviceList() {
             return {};
          }
     });
-    updateRequestLog("Retorno", JSON.stringify(resp.responseJSON).slice(0, 100) + "...");
+    if (log == 1) {
+        updateRequestLog("Retorno", JSON.stringify(resp.responseJSON).slice(0, 100) + "...");
+    }
     return resp;
 };
 
@@ -61,25 +65,44 @@ function updateRequestLog(type, text) {
 };
 
 function triggerAction (id, name, command) {
-    // curl -iX POST \
-    // 'http://iot.intelirede.com.br:7896/iot/d?k=4jggokgpepnvsb2uv4s40d59ov&i=cafeteira001' \
-    // -H 'Content-Type: text/plain' \
-    // -d 's|CAFESTANDBY'
+    // 'curl -iX PATCH \
+    //     "http://iot.intelirede.com.br:1026/v2/entities/urn:ngsi-ld:Cafeteira:001/attrs" \
+    //     -H "Content-Type: application/json" \
+    //     -H "fiware-service: openiot" \
+    //     -H "fiware-servicepath: /" \
+    //     -d "{ \
+    //     "cafelongo": { \
+    //         "type" : "command", \
+    //         "value" : "" \
+    //     } \
+    //     }'
 
-    let vURL = 'http://iot.intelirede.com.br:7896/iot/d?k=4jggokgpepnvsb2uv4s40d59ov&i=' + name;
-    let vData = 's|' + command.toUpperCase();
+    let vURL = "http://iot.intelirede.com.br:1026/v2/entities/" + id + "/attrs";
+    let vData = '{"cafelongo": {"type" : "' + command + '","value" : ""}}'
 
-    updateRequestLog("Requisição", "curl -iX POST \
-    '" + vURL + "' \
-    -H 'Content-Type: text/plain' \
-    -d '" + vData + "'");
+    updateRequestLog("Requisição", "curl -iX PATCH \
+    'http://iot.intelirede.com.br:1026/v2/entities/" + id + "/attrs' \
+    -H 'Content-Type: application/json' \
+    -H 'fiware-service: openiot' \
+    -H 'fiware-servicepath: /' \
+    -d '{ \
+        \"cafelongo\": { \
+            \"type\" : \"" + command + "\", \
+            \"value\" : \"\" \
+    } \
+    }'");
+
+    console.log(vURL);
+    console.log(vData);
 
     let resp = $.ajax({
         url: vURL,
         headers: {
-            'Content-Type': 'text/plain'
+            'Content-Type': 'application/json',
+            'fiware-service': 'openiot',
+            'fiware-servicepath': '/',
         },
-        type: "POST",
+        type: "PATCH",
         dataType: 'text',
         async: false,
         data: vData,
@@ -92,14 +115,14 @@ function triggerAction (id, name, command) {
             return {};
          }
     });
-    updateRequestLog("Retorno", resp.status + " " + resp.statusText);
-    getDeviceStatus(id, 1);
-    initListOfTasks();
+    updateRequestLog("Retorno", JSON.stringify(resp));
+    initListOfTasks(1);
 };
 
 function updateSensor (id, value) {
     console.log("update em " + id + " para " + value); // TODO: CHAMAR CURL E DISPARAR UPDATE
     updateRequestLog("Requisição", "CURL update sensor. Update em " + id + " para " + value);
+    initListOfTasks(1);
 };
 
 function doButtonTrigger(id, name, commands) { // opens the modal to trigger an action
@@ -145,51 +168,7 @@ function doButtonEdit(id, name) { // opens the modal to update a sensor's data
     };
     document.getElementById("modalButtonHolder").appendChild(button);
     editActionModal.show();
-    initListOfTasks();
 };
-
-function getDeviceStatus(id, log = 0) {
-    // curl -G -X GET \
-    //     'http://iot.intelirede.com.br:1026/v2/entities/urn:ngsi-ld:Cafeteira:001' \
-    //     -H 'fiware-service: openiot' \
-    //     -H 'fiware-servicepath: /'
-
-    let vURL = "http://iot.intelirede.com.br:1026/v2/entities/" + id;
-
-    if (log == 1) {
-        updateRequestLog("Requisição", "curl -G -X GET \
-        '" + vURL + "' \
-        -H 'fiware-service: openiot' \
-        -H 'fiware-servicepath: /'");
-    }
-
-    let resp = $.ajax({
-        url: vURL,
-        headers: {
-            'fiware-service': 'openiot',
-            'fiware-servicepath': '/'
-        },
-        type: "GET",
-        dataType: "json",
-        async: false,
-        data: {},
-        success: function (result) {
-            // console.log(result);
-        },
-        error: function(XMLHttpRequest, textStatus, errorThrown) {
-            console.log(textStatus);
-            console.log(errorThrown);
-            return {};
-         }
-    });
-
-    if (log == 1) {
-        updateRequestLog("Retorno", JSON.stringify(resp).slice(0, 100) + "...");
-    }
-    return resp.responseJSON.state == null ? "" : resp.responseJSON.state.value;
-}
-
-
 
 
 
@@ -202,26 +181,28 @@ let createDeviceCard = (device) => {
     let cardBody = document.createElement('div');
     cardBody.className = 'card-body';
 
+    const deviceIdText = String(device.id)
+    const deviceNameText = deviceIdText.replace("urn:ngsi-ld:", "").replace(":", "").toLowerCase();
+    const deviceTypeText = String(device.type);
+    const deviceStatusText = String(device.state == null ? null : device.state.value);
+
     var commandList = [];
-    if(device.commands.length != 0) {
-        Object.entries(device.commands).forEach((entry) => {
-            commandList.push(entry[1].name);
-        });
-    }
+    Object.entries(device).forEach((entry) => {
+        if(entry[1].type == 'command') {commandList.push(entry[0]);}
+    });
 
-    const deviceIdText = String(device.device_id);
-    const deviceEntityNameText = String(device.entity_name);
-    const deviceTypeText = String(device.entity_type);
-    const deviceStatusText = String(getDeviceStatus(deviceEntityNameText));
-
-    let deviceId = document.createElement('h5'); 
-    deviceId.innerText = "Nome: " + deviceIdText;
-    deviceId.className = 'card-title';
-    cardBody.appendChild(deviceId);
+    let deviceName = document.createElement('h5'); 
+    deviceName.innerText = "Nome: " + deviceNameText;
+    deviceName.className = 'card-title';
+    cardBody.appendChild(deviceName);
 
     let deviceStatus = document.createElement('h6');
     deviceStatus.innerText = "Status: " + deviceStatusText;
     cardBody.appendChild(deviceStatus);
+    
+    let deviceId = document.createElement('h6');
+    deviceId.innerText = "Id: " + deviceIdText;
+    cardBody.appendChild(deviceId);
 
     let deviceType = document.createElement('h6');
     deviceType.innerText = "Tipo: " + deviceTypeText;
@@ -242,7 +223,7 @@ let createDeviceCard = (device) => {
         buttonEdit.innerText = "Editar";
         buttonEdit.className = 'btn btn-secondary';
         buttonEdit.onclick = function(){
-            doButtonEdit(deviceEntityNameText, deviceIdText);
+            doButtonEdit(deviceIdText, deviceNameText);
         };
         buttonHolder.appendChild(buttonEdit);
     } else { // add trigger button
@@ -250,7 +231,7 @@ let createDeviceCard = (device) => {
         buttonTrigger.innerText = "Acionar";
         buttonTrigger.className = 'btn btn-success';
         buttonTrigger.onclick = function(){
-            doButtonTrigger(deviceEntityNameText, deviceIdText, commandList);
+            doButtonTrigger(deviceIdText, deviceNameText, commandList);
         };
         buttonHolder.appendChild(buttonTrigger);
     }
@@ -260,18 +241,19 @@ let createDeviceCard = (device) => {
     cardContainer.appendChild(card);
 }
 
-let initListOfTasks = () => {
-    var resp = updateDeviceList();
+let initListOfTasks = (log = 0) => {
+    var resp = updateDeviceList(log);
     if (cardContainer) {
         cardContainer.innerHTML = '';
     }
     cardContainer = document.getElementById('card-container');
-    resp.responseJSON.devices.forEach((entry) => {
+    resp.responseJSON.forEach((entry) => {
         createDeviceCard(entry);
     });
 
     console.log("Atualizando tela");
 };
 
+updateDeviceList(1);
 main();
 setInterval(main, updateInterval);
