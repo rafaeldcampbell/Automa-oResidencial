@@ -1,0 +1,609 @@
+const CAFETEIRA_LONGO = 's|CAFELONGO';
+const CAFETEIRA_CURTO = 's|CAFECURTO';
+const CAFETEIRA_STANDBY = 's|CAFESTANDBY';
+const CAFE_LONGO_TEMPO = 10;
+const CAFE_CURTO_TEMPO = 5;
+var cafePronto = new Date();
+
+const CORTINA_ABRIR = 's|CORTINAABRIR';
+const CORTINA_FECHAR = 's|CORTINAFECHAR';
+const CORTINA_STANDBY = 's|CORTINASTANDBY';
+const ATUAR_CORTINA_TEMPO = 10;
+var cortinaAtuando = new Date();
+
+const ROBO_RAPIDA = 's|ROBORAPIDA';
+const ROBO_DETALHADA = 's|ROBODETALHADA';
+const ROBO_STANDBY = 's|ROBOSTANDBY';
+const ROBO_RAPIDA_TEMPO = 5;
+const ROBO_DETALHADA_TEMPO = 10;
+var roboAspirando = new Date();
+
+
+const MAQLAV_CURTO = 's|MAQLAVCURTO';
+const MAQLAV_LONGO = 's|MAQLAVLONGO';
+const MAQLAV_STANDBY = 's|MAQLAVSTANDBY';
+const MAQLAV_CURTO_TEMPO = 5;
+const MAQLAV_LONGO_TEMPO = 10;
+var maqLavando = new Date();
+
+const PRESSAO_ZERO = 's|0';
+
+const PRESENCA_NAO_DETECTADA = 's|0';
+
+
+//
+// This controller is simulates a series of devices.
+// The internal state is maintained using the Ultralight protocol
+//
+
+/* global SOCKET_IO */
+
+const NodeCache = require('node-cache');
+const myCache = new NodeCache();
+const _ = require('lodash');
+const debug = require('debug')('tutorial:devices');
+const Northbound = require('../controllers/iot/northbound');
+
+// A series of constants used by our set of devices
+const DOOR_LOCKED = 's|LOCKED';
+const DOOR_OPEN = 's|OPEN';
+const DOOR_CLOSED = 's|CLOSED';
+
+const BELL_OFF = 's|OFF';
+const BELL_ON = 's|ON';
+
+const LAMP_ON = 's|ON|l|1750';
+const LAMP_OFF = 's|OFF|l|0';
+
+const NO_MOTION_DETECTED = 'c|0';
+const MOTION_DETECTED = 'c|1';
+
+const VALID_COMMANDS = {
+    door: ['open', 'close', 'lock', 'unlock'],
+    lamp: ['on', 'off'],
+    bell: ['ring'],
+    robot: ['move', 'unlock', 'empty'],
+    cafeteira: ['cafelongo', 'cafecurto', 'cafestandby'],
+    cortina: ['cortinaabrir', 'cortinafechar', 'cortinastandby'],
+    roboaspirador: ['roborapida', 'robodetalhada', 'robostandby'],
+    maqdelavar: ['maqlavcurto', 'maqlavlongo', 'maqlavstandby']
+};
+
+const ROBOT_ENABLED = process.env.ROBOT_ENABLED || false;
+const RATE_OF_MEASURE = process.env.DUMMY_DEVICES_RATE || 1000;
+
+// Change the state of a dummy IoT device based on the command received.
+function addRobotGoal(deviceId, command, param1, param2) {
+    debug('addRobotGoal: ' + deviceId + ' ' + command);
+    const state = getDeviceState(deviceId);
+    console.log(state);
+    if (command === 'fill' && state.s === 'IDLE') {
+        state.l = 'FULL';
+        setDeviceState(deviceId, toUltraLight(state), true);
+        return true;
+    }
+    if (command === 'unlock' && state.s === 'UNLOADING') {
+        state.s = 'IDLE';
+        state.l = 'EMPTY';
+        setDeviceState(deviceId, toUltraLight(state), true);
+        return true;
+    }
+    if (command === 'move') {
+        const goalsState = getDeviceState(deviceId + 'goal');
+        let currentGoals = goalsState.t || '';
+        if (param1) {
+            currentGoals = currentGoals + ',' + param1;
+        }
+        if (param2) {
+            currentGoals = currentGoals + ',' + param2;
+        }
+        if (currentGoals.startsWith(',')) {
+            currentGoals = currentGoals.substring(1);
+        }
+        goalsState.t = currentGoals;
+        setDeviceState(deviceId + 'goal', toUltraLight(goalsState), false);
+        if (state.s === 'IDLE') {
+            state.s = 'ACTIVE';
+            setDeviceState(deviceId, toUltraLight(state), true);
+        }
+        return true;
+    }
+    return false;
+}
+
+// Change the state of a dummy IoT device based on the command received.
+function actuateDevice(deviceId, command) {
+    debug('actuateDevice: ' + deviceId + ' ' + command);
+    switch (deviceId.replace(/\d/g, '')) {
+        case 'bell':
+            if (command === 'ring') {
+                setDeviceState(deviceId, BELL_ON, false);
+                SOCKET_IO.emit(deviceId, BELL_ON);
+            }
+            break;
+        case 'door':
+            if (command === 'open') {
+                setDeviceState(deviceId, DOOR_OPEN);
+            } else if (command === 'close' || command === 'unlock') {
+                setDeviceState(deviceId, DOOR_CLOSED);
+            } else if (command === 'lock') {
+                setDeviceState(deviceId, DOOR_LOCKED);
+            }
+            break;
+        case 'lamp':
+            if (command === 'on') {
+                setDeviceState(deviceId, LAMP_ON);
+            }
+            if (command === 'off') {
+                setDeviceState(deviceId, LAMP_OFF);
+            }
+            break;
+        case 'cafeteira':
+            if (command === 'cafelongo') {
+                setDeviceState(deviceId, CAFETEIRA_LONGO);
+                cafePronto = new Date();
+                cafePronto.setSeconds(cafePronto.getSeconds() + CAFE_LONGO_TEMPO);
+            } else if (command === 'cafecurto') {
+                setDeviceState(deviceId, CAFETEIRA_CURTO);
+                cafePronto = new Date();
+                cafePronto.setSeconds(cafePronto.getSeconds() + CAFE_CURTO_TEMPO);
+            } else if (command === 'cafestandby') {
+                setDeviceState(deviceId, CAFETEIRA_STANDBY);
+            }
+            break;
+        case 'cortina':
+            if (command === 'cortinaabrir') {
+                setDeviceState(deviceId, CORTINA_ABRIR);
+                cortinaAtuando = new Date();
+                cortinaAtuando.setSeconds(cortinaAtuando.getSeconds() + ATUAR_CORTINA_TEMPO);
+            } else if (command === 'cortinafechar') {
+                setDeviceState(deviceId, CORTINA_FECHAR);
+                cortinaAtuando = new Date();
+                cortinaAtuando.setSeconds(cortinaAtuando.getSeconds() + ATUAR_CORTINA_TEMPO);
+            } else if (command === 'cortinastandby') {
+                setDeviceState(deviceId, CORTINA_STANDBY);
+            }
+            break;
+        case 'roboaspirador':
+            if (command === 'roborapida') {
+                setDeviceState(deviceId, ROBO_RAPIDA);
+                roboAspirando = new Date();
+                roboAspirando.setSeconds(roboAspirando.getSeconds() + ROBO_RAPIDA_TEMPO);
+            } else if (command === 'robodetalhada') {
+                setDeviceState(deviceId, ROBO_DETALHADA);
+                roboAspirando = new Date();
+                roboAspirando.setSeconds(roboAspirando.getSeconds() + ROBO_DETALHADA_TEMPO);
+            } else if (command === 'robostandby') {
+                setDeviceState(deviceId, ROBO_STANDBY);
+            }
+            break;
+        case 'maqdelavar':
+            if (command === 'maqlavcurto') {
+                setDeviceState(deviceId, MAQLAV_CURTO);
+                maqLavando = new Date();
+                maqLavando.setSeconds(maqLavando.getSeconds() + MAQLAV_CURTO_TEMPO);
+            } else if (command === 'maqlavlongo') {
+                setDeviceState(deviceId, MAQLAV_LONGO);
+                maqLavando = new Date();
+                maqLavando.setSeconds(maqLavando.getSeconds() + MAQLAV_LONGO_TEMPO);
+            } else if (command === 'maqlavstandby') {
+                setDeviceState(deviceId, MAQLAV_STANDBY);
+            }
+            break;
+    }
+}
+
+// Set up 16 IoT devices, a door, bell, motion sensor and lamp for each of 4 locations.
+//
+// The door can be OPEN CLOSED or LOCKED
+// The bell can be ON or OFF - it does not report state.
+// The motion sensor counts the number of people passing by
+// The lamp can be ON or OFF. This also registers luminocity.
+// It will slowly dim as time passes (provided no movement is detected)
+function initDevices() {
+    debug('initDevices');
+
+    // Once a minute, read the existing state of the dummy devices
+    const deviceIds = myCache.keys();
+    let wait = 4000;
+    _.forEach(deviceIds, (deviceId) => {
+        wait = wait + 1999;
+        setTimeout(setUpSensorReading, wait, deviceId);
+    });
+
+    // Every few seconds, update the state of the dummy devices in a
+    // semi-random fashion.
+    setInterval(activateDoor, 4 * RATE_OF_MEASURE);
+    // Every second, update the state of the dummy devices in a
+    // semi-random fashion.
+    setInterval(activateDevices, RATE_OF_MEASURE);
+    if (ROBOT_ENABLED) {
+        // Every second, move the robot closer to the next goal.
+        setInterval(moveRobot, RATE_OF_MEASURE);
+    }
+}
+
+let isRobotActive = false;
+let isDoorActive = false;
+let isDevicesActive = false;
+let devicesInitialized = false;
+
+myCache.set('door001', DOOR_LOCKED);
+myCache.set('door002', DOOR_LOCKED);
+myCache.set('door003', DOOR_LOCKED);
+myCache.set('door004', DOOR_LOCKED);
+
+myCache.set('bell001', BELL_OFF, false);
+myCache.set('bell002', BELL_OFF, false);
+myCache.set('bell003', BELL_OFF, false);
+myCache.set('bell004', BELL_OFF, false);
+
+myCache.set('lamp001', LAMP_OFF);
+myCache.set('lamp002', LAMP_OFF);
+myCache.set('lamp003', LAMP_OFF);
+myCache.set('lamp004', LAMP_OFF);
+
+myCache.set('motion001', NO_MOTION_DETECTED);
+myCache.set('motion002', NO_MOTION_DETECTED);
+myCache.set('motion003', NO_MOTION_DETECTED);
+myCache.set('motion004', NO_MOTION_DETECTED);
+
+myCache.set('cafeteira001', CAFETEIRA_STANDBY);
+myCache.set('cafeteira002', CAFETEIRA_STANDBY);
+myCache.set('cafeteira003', CAFETEIRA_STANDBY);
+myCache.set('cafeteira004', CAFETEIRA_STANDBY);
+
+myCache.set('cortina001', CORTINA_STANDBY);
+myCache.set('cortina002', CORTINA_STANDBY);
+myCache.set('cortina003', CORTINA_STANDBY);
+myCache.set('cortina004', CORTINA_STANDBY);
+
+myCache.set('roboaspirador001', ROBO_STANDBY);
+myCache.set('roboaspirador002', ROBO_STANDBY);
+myCache.set('roboaspirador003', ROBO_STANDBY);
+myCache.set('roboaspirador004', ROBO_STANDBY);
+
+myCache.set('maqdelavar001', MAQLAV_STANDBY);
+myCache.set('maqdelavar002', MAQLAV_STANDBY);
+myCache.set('maqdelavar003', MAQLAV_STANDBY);
+myCache.set('maqdelavar004', MAQLAV_STANDBY);
+
+myCache.set('sensorpressao001', PRESSAO_ZERO);
+myCache.set('sensorpressao002', PRESSAO_ZERO);
+myCache.set('sensorpressao003', PRESSAO_ZERO);
+myCache.set('sensorpressao004', PRESSAO_ZERO);
+
+myCache.set('sensorpresenca001', PRESENCA_NAO_DETECTADA);
+myCache.set('sensorpresenca002', PRESENCA_NAO_DETECTADA);
+myCache.set('sensorpresenca003', PRESENCA_NAO_DETECTADA);
+myCache.set('sensorpresenca004', PRESENCA_NAO_DETECTADA);
+
+
+if (ROBOT_ENABLED) {
+    myCache.set('robot001', 's|ACTIVE|l|EMPTY|gps|13.300,52.480');
+    myCache.set('robot001goal', 't|13.350,52.510');
+}
+
+// Move the robot closer to a target
+function moveRobot() {
+    if (isRobotActive) {
+        return;
+    }
+
+    isRobotActive = true;
+    const deviceIds = myCache.keys();
+
+    _.forEach(deviceIds, (deviceId) => {
+        if (deviceId.replace(/\d/g, '') === 'robot') {
+            const state = getDeviceState(deviceId);
+            const goalState = getDeviceState(deviceId + 'goal');
+            const gps = (state.gps || '').split(',');
+            const target = (goalState.t || '').split(',');
+            const nextLong = target.length ? target[0] : undefined;
+            const nextLat = target.length ? target[1] : undefined;
+            const isSensor = nextLong && nextLat;
+
+            if (isSensor) {
+                if (Math.abs(gps[0] - target[0]) < 0.003 && Math.abs(gps[1] - target[1]) < 0.003) {
+                    state.gps = target[0] + ',' + target[1];
+                    target.shift();
+                    target.shift();
+                    goalState.t = target.join(',');
+                    setDeviceState(deviceId + 'goal', toUltraLight(goalState), false);
+
+                    if (target.length === 0) {
+                        if (state.l === 'EMPTY') {
+                            state.s = 'IDLE';
+                        } else {
+                            state.s = 'UNLOADING';
+                        }
+                    } else {
+                        state.l = 'FULL';
+                    }
+                } else {
+                    if (Math.abs(gps[0] - target[0]) >= 0.003 && getRandom() > 7) {
+                        gps[0] = addAndTrim(gps[0], gps[0] < nextLong);
+                    }
+                    if (Math.abs(gps[1] - target[1]) >= 0.003 && getRandom() > 7) {
+                        gps[1] = addAndTrim(gps[1], gps[1] < nextLat);
+                    }
+                    state.gps = gps.join(',');
+                }
+                console.log(toUltraLight(state));
+                setDeviceState(deviceId, toUltraLight(state), isSensor);
+            }
+        }
+    });
+    isRobotActive = false;
+}
+
+function addAndTrim(value, add) {
+    const newValue = add ? parseFloat(value) + 0.003 : parseFloat(value) - 0.003;
+    return Math.round(newValue * 1000) / 1000;
+}
+
+// Open and shut an unlocked door
+function activateDoor() {
+    if (isDoorActive) {
+        return;
+    }
+
+    isDoorActive = true;
+    const deviceIds = myCache.keys();
+
+    _.forEach(deviceIds, (deviceId) => {
+        const state = getDeviceState(deviceId);
+        const isSensor = true;
+
+        switch (deviceId.replace(/\d/g, '')) {
+            case 'door':
+                //  The door is OPEN or CLOSED or LOCKED,
+                if (state.s !== 'LOCKED') {
+                    // Randomly open and close the door if not locked.
+                    // lower the rate if the lamp is off.
+                    const rate = getLampState(deviceId, 'door') === 'ON' ? 3 : 6;
+                    state.s = getRandom() > rate ? 'OPEN' : 'CLOSED';
+                }
+                setDeviceState(deviceId, toUltraLight(state), isSensor);
+                break;
+        }
+    });
+    isDoorActive = false;
+}
+
+// Update state of Lamps, Doors and Motion Sensors
+function activateDevices() {
+    if (isDevicesActive) {
+        return;
+    }
+
+    isDevicesActive = true;
+
+    const deviceIds = myCache.keys();
+
+    _.forEach(deviceIds, (deviceId) => {
+        const state = getDeviceState(deviceId);
+        let isSensor = true;
+
+        switch (deviceId.replace(/\d/g, '')) {
+            case 'bell':
+                // ON or OFF - Switch off the bell if it is still ringing
+                if (state.s === 'ON') {
+                   state.s = 'OFF';
+                }
+                isSensor = false;
+                break;
+
+            case 'motion':
+                // If the door is OPEN, randomly switch the count of the motion sensor
+                if (getDoorState(deviceId, 'motion') === 'OPEN') {
+                    if (state.c === 1) {
+                        state.c = 0;
+                    } else {
+                        state.c = getRandom() > 3 ? 1 : 0;
+                    }
+                } else {
+                    state.c = 0;
+                }
+                setDeviceState(deviceId, toUltraLight(state), isSensor);
+                break;
+
+            case 'lamp':
+                if (state.s === 'OFF') {
+                    state.l = 0;
+                } else if (getDoorState(deviceId, 'lamp') === 'OPEN') {
+                    // if the door is open set the light to full power
+                    state.l = parseInt(state.l) || 1000;
+                    state.l = state.l + getRandom() * getRandom();
+                    if (state.l < 1850) {
+                        state.l = state.l + 30 + getRandom() * getRandom();
+                    }
+                    if (state.l > 1990) {
+                        state.l = 1990 + getRandom();
+                    }
+                } else if (state.l > 1000) {
+                    // if the door is closed dim the light
+                    state.l = parseInt(state.l) || 1990;
+                    if (getRandom() > 3) {
+                        state.l = state.l - 30 - getRandom() * getRandom();
+                    }
+                    state.l = state.l + getRandom();
+                }
+                break;
+
+            case 'cafeteira':
+                if (state.s === 'CAFELONGO' || state.s === 'CAFECURTO')
+                {
+                    var t = new Date();
+                    if(t.getSeconds() > cafePronto.getSeconds()) {
+                        state.s = 'CAFESTANDBY';
+                    }
+                }
+                break;
+
+            case 'cortina':
+                if (state.s === 'CORTINAABRIR' || state.s === 'CORTINAFECHAR')
+                {
+                    var t = new Date();
+                    if(t.getSeconds() > cortinaAtuando.getSeconds()) {
+                        state.s = 'CORTINASTANDBY';
+                    }
+                }
+                break;
+
+            case 'roboaspirador':
+                if (state.s === 'ROBORAPIDA' || state.s === 'ROBODETALHADA')
+                {
+                    var t = new Date();
+                    if(t.getSeconds() > roboAspirando.getSeconds()) {
+                        state.s = 'ROBOSTANDBY';
+                    }
+                }
+                break;
+
+            case 'maqdelavar':
+                if (state.s === 'MAQLAVCURTO' || state.s === 'MAQLAVLONGO')
+                {
+                    var t = new Date();
+                    if(t.getSeconds() > maqLavando.getSeconds()) {
+                        state.s = 'MAQLAVSTANDBY';
+                    }
+                }
+                break;
+
+            case 'sensorpressao':
+                // sensor dummy completamente passivo
+                break;
+
+            case 'sensorpresenca':
+                // sensor dummy nao muda sozinho de estado
+                break;
+
+        }
+
+        setDeviceState(deviceId, toUltraLight(state), isSensor);
+    });
+    isDevicesActive = false;
+}
+
+// Read the existing state of the dummy devices when requested.
+function sendDeviceReading(deviceId) {
+    const state = toUltraLight(getDeviceState(deviceId));
+    const isSensor = deviceId.replace(/\d/g, '') !== 'bell';
+    setDeviceState(deviceId, state, isSensor, true);
+}
+
+//
+// Transformation function from Ultralight Protocol to an object
+// Ultralight is a series of pipe separated key-value pairs.
+// Each key and value is in turn separated by a pipe character
+//
+// e.g. s|ON|l|1000 becomes
+// { s: 'ON', l: '1000'}
+//
+function getDeviceState(deviceId) {
+    const ultraLight = myCache.get(deviceId);
+    const obj = {};
+    const keyValuePairs = ultraLight.split('|');
+    for (let i = 0; i < keyValuePairs.length; i = i + 2) {
+        obj[keyValuePairs[i]] = keyValuePairs[i + 1];
+    }
+    return obj;
+}
+//
+// Sets the device state in the in-memory cache. If the device is a sensor
+// it also reports (and attempts to send) the northbound traffic to the IoT agent.
+// The state of the dummy device is also sent to the browser for display
+//
+function setDeviceState(deviceId, state, isSensor = true, force = false) {
+    const previousState = myCache.get(deviceId);
+    myCache.set(deviceId, state);
+
+    if (!devicesInitialized) {
+        initDevices();
+        devicesInitialized = true;
+    }
+
+    // If we are running under HTTP mode the device will respond with a result
+    // If we are running under MQTT mode the device will post the result as a topic
+    if (isSensor && (state !== previousState || force)) {
+        Northbound.sendMeasure(deviceId, state);
+    }
+
+    SOCKET_IO.emit(deviceId, state);
+}
+
+// Transformation function from a state object to the Ultralight Protocol
+// Ultralight is a series of pipe separated key-value pairs.
+// Each key and value is in turn separated by a pipe character
+//
+// e.g. s|ON,l|1000
+function toUltraLight(object) {
+    const strArray = [];
+    _.forEach(object, function (value, key) {
+        strArray.push(key + '|' + value);
+    });
+    return strArray.join('|');
+}
+
+// Return the state of the door with the same number as the current element
+// this is because no people will enter if the door is LOCKED, and therefore
+// both the motion sensor will not increment an the smart lamp will slowly
+// decrease
+function getDoorState(deviceId, type) {
+    const door = getDeviceState(deviceId.replace(type, 'door'));
+    return door.s || 'LOCKED';
+}
+
+// Return the state of the lamp with the same number as the current element
+// this is because fewer people will enter the building if the lamp is OFF,
+// and therefore the motion sensor will increment more slowly
+function getLampState(deviceId, type) {
+    const lamp = getDeviceState(deviceId.replace(type, 'lamp'));
+    return lamp.s || 'OFF';
+}
+
+// Pick a random number between 1 and 10
+function getRandom() {
+    return Math.floor(Math.random() * 10) + 1;
+}
+
+// Directly alter the state of a motion sensor.
+function fireMotionSensor(id) {
+    debug('fireMotionSensor');
+    setDeviceState(id, MOTION_DETECTED, true);
+}
+
+// Once a minute, read the existing state of the dummy devices
+function setUpSensorReading(deviceId) {
+    const deviceType = deviceId.replace(/\d/g, '');
+    if (deviceType === 'lamp' || deviceType === 'motion') {
+        setInterval(sendDeviceReading, 59999, deviceId);
+    }
+}
+
+// Check to see if a deviceId has a corresponding entry in the cache
+function notFound(deviceId) {
+    const deviceUnknown = _.indexOf(myCache.keys(), deviceId) === -1;
+    if (deviceUnknown) {
+        debug('Unknown IoT device: ' + deviceId);
+    }
+    return deviceUnknown;
+}
+
+// Check to see if a command can be processed by a class of devices
+function isUnknownCommand(device, command) {
+    const invalid = _.indexOf(VALID_COMMANDS[device], command) === -1;
+    if (invalid) {
+        debug('Invalid command for a ' + device + ': ' + command);
+    }
+    return invalid;
+}
+
+module.exports = {
+    actuateDevice,
+    fireMotionSensor,
+    addRobotGoal,
+    notFound,
+    isUnknownCommand
+};
