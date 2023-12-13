@@ -1,7 +1,3 @@
-const registrationFields = [["Device Id", "device_id", "cafeteira001"], 
-                            ["Entity Name", "entity_name", "Cafeteira:001"], 
-                            ["Entity Type", "entity_type", "Thing or Sensor"], 
-                            ["Comandos", "commands", "cafelongo, cafecurto, cafestandby"]];
 const deviceList = ["Cafeteira", "Cortina", "Robo Aspirador", "Maquina de Lavar", "Sensor de pressão", "Sensor de presença"]
 
 function getDeviceRegistrationData(device, id) {
@@ -105,7 +101,7 @@ function getDeviceRegistrationData(device, id) {
         return '{ \
             "devices": [ \
             { \
-                "device_id": "Sensorpressao' + id + '", \
+                "device_id": "sensorpressao' + id + '", \
                 "entity_name": "urn:ngsi-ld:Sensorpressao:' + id + '", \
                 "entity_type": "Sensorpressao", \
                 "protocol": "PDI-IoTA-UltraLight", \
@@ -149,8 +145,13 @@ function updateDeviceList() {
     // -H 'fiware-service: openiot' \
     // -H 'fiware-servicepath: /'
 
+    // curl -G -X GET \
+    // 'http://iot.intelirede.com.br:1026/v2/entities' \
+    // -H 'fiware-service: openiot' \
+    // -H 'fiware-servicepath: /'
+
     return $.ajax({
-        url: 'http://iot.intelirede.com.br:4041/iot/devices',
+        url: 'http://iot.intelirede.com.br:1026/v2/entities',
         headers: {
             'fiware-service': 'openiot',
             'fiware-servicepath': '/'
@@ -169,16 +170,15 @@ function updateDeviceList() {
             return {};
          }
     });
-
 };
 
 
 // ---------------------- CREATE ALL ACTION FUNCTIONS ----------------------------------------------------------
-function deleteDevice(id) { // TODO: CHAMAR CURL E DELETAR OBJETO
-    console.log("excluindo " + id);
-    initListOfTasks();
-    return;
-}
+// function deleteDevice(id) { // não implementado
+//     console.log("excluindo " + id);
+//     initListOfTasks();
+//     return;
+// }
 
 function createDevice(device, id) {
 
@@ -237,29 +237,29 @@ function createDevice(device, id) {
     return;
 }
 
-function deleteDeviceButton(id, name) {
-    var deleteActionModal = new bootstrap.Modal(document.getElementById("actionModal"), {});
-    document.getElementById("modalTitle").innerHTML = "Confirmação";
-    document.getElementById("modalBody").innerHTML = "<p>Deseja realmente excluir o dispositivo "+ name + "?</p>";
+// function deleteDeviceButton(id, name) {
+//     var deleteActionModal = new bootstrap.Modal(document.getElementById("actionModal"), {});
+//     document.getElementById("modalTitle").innerHTML = "Confirmação";
+//     document.getElementById("modalBody").innerHTML = "<p>Deseja realmente excluir o dispositivo "+ name + "?</p>";
 
-    document.getElementById("modalButtonHolder").innerHTML = "";
-    let deleteButton = document.createElement('button');
-    deleteButton.innerText = "Excluir";
-    deleteButton.className = 'btn btn-danger';
-    deleteButton.onclick = function(){
-        deleteActionModal.hide();
-        deleteDevice(id);
-    };
-    document.getElementById("modalButtonHolder").appendChild(deleteButton);
-    let cancelButton = document.createElement('button');
-    cancelButton.innerText = "Cancelar";
-    cancelButton.className = 'btn btn-success';
-    cancelButton.onclick = function(){
-        deleteActionModal.hide();
-    };
-    document.getElementById("modalButtonHolder").appendChild(cancelButton);
-    deleteActionModal.show();
-}
+//     document.getElementById("modalButtonHolder").innerHTML = "";
+//     let deleteButton = document.createElement('button');
+//     deleteButton.innerText = "Excluir";
+//     deleteButton.className = 'btn btn-danger';
+//     deleteButton.onclick = function(){
+//         deleteActionModal.hide();
+//         deleteDevice(id);
+//     };
+//     document.getElementById("modalButtonHolder").appendChild(deleteButton);
+//     let cancelButton = document.createElement('button');
+//     cancelButton.innerText = "Cancelar";
+//     cancelButton.className = 'btn btn-success';
+//     cancelButton.onclick = function(){
+//         deleteActionModal.hide();
+//     };
+//     document.getElementById("modalButtonHolder").appendChild(cancelButton);
+//     deleteActionModal.show();
+// }
 
 function createDeviceButton() {
     var createActionModal = new bootstrap.Modal(document.getElementById("actionModal"), {});
@@ -317,45 +317,50 @@ let createDeviceCard = (device) => {
     cardBody.className = 'card-body col';
     cardBody.style = "width: 80%";
 
-    var commandList = [];
-    if(device.commands.length != 0) {
-        Object.entries(device.commands).forEach((entry) => {
-            commandList.push(entry[1].name);
-        });
-    }
+    const deviceIdText = String(device.id)
+    const deviceNameText = deviceIdText.replace("urn:ngsi-ld:", "").replace(":", "").toLowerCase();
+    const deviceTypeText = String(device.type);
+    const deviceStatusText = String(device.state == null ? null : device.state.value);
 
-    const deviceIdText = String(device.device_id);
-    const deviceEntityNameText = String(device.entity_name);
-    const deviceTypeText = String(device.entity_type);
+    var commandList = [];
+    Object.entries(device).forEach((entry) => {
+        if(entry[1].type == 'command') {commandList.push(entry[0]);}
+    });
 
     
-    let deleteButton = document.createElement('button');
-    deleteButton.innerText = "Excluir";
-    deleteButton.className = 'btn btn-danger';
-    deleteButton.style = 'margin-top: 40px; margin-bottom: 40px';
-    deleteButton.onclick = function(){
-        deleteDeviceButton(deviceEntityNameText, deviceIdText);
-    };
+    // let deleteButton = document.createElement('button');
+    // deleteButton.innerText = "Excluir";
+    // deleteButton.className = 'btn btn-danger';
+    // deleteButton.style = 'margin-top: 40px; margin-bottom: 40px';
+    // deleteButton.onclick = function(){
+    //     deleteDeviceButton(deviceIdText, deviceNameText);
+    // };
 
     let deviceId = document.createElement('h5'); 
-    deviceId.innerText = "Nome: " + deviceIdText;
+    deviceId.innerText = "Nome: " + deviceNameText;
     deviceId.className = 'card-title';
     cardBody.appendChild(deviceId);
 
     let deviceType = document.createElement('h6');
     deviceType.innerText = "Tipo: " + deviceTypeText;
     cardBody.appendChild(deviceType);
+    
+    let deviceStatus = document.createElement('h6');
+    deviceStatus.innerText = "Status: " + deviceStatusText;
+    cardBody.appendChild(deviceStatus);
 
-    let deviceCommands = document.createElement('h6');
-    if (commandList.length != 0) {
-        deviceCommands.innerText = "Comandos: " + commandList.join(", ");
-    }else{
-        deviceCommands.innerText = "Comandos: N/A";
+    if(!deviceTypeText.includes("Sensor")) { // add update button
+        let deviceCommands = document.createElement('h6');
+        if (commandList.length != 0) {
+            deviceCommands.innerText = "Comandos: " + commandList.join(", ");
+        }else{
+            deviceCommands.innerText = "Comandos: N/A";
+        }
+        cardBody.appendChild(deviceCommands);
     }
-    cardBody.appendChild(deviceCommands);
     
     insideContainer.appendChild(cardBody);
-    insideContainer.appendChild(deleteButton);
+    // insideContainer.appendChild(deleteButton);
     card.appendChild(insideContainer);
     cardContainer.appendChild(card);
 }
@@ -376,8 +381,8 @@ let initListOfTasks = () => {
     };
     cardContainer.appendChild(insertButton);
 
-    resp.responseJSON.devices.forEach((entry) => {
-        createDeviceCard(entry);
+    resp.responseJSON.forEach((entry) => {
+        if(entry.refCasa != null) {createDeviceCard(entry);}; // removing default devices 
     });
     console.log("Atualizando tela");
 };
