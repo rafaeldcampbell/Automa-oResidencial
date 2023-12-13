@@ -141,17 +141,17 @@ function getDeviceRegistrationData(device, id) {
 function updateDeviceList() {
 
     // curl -G -X GET \
-    // 'http://iot.intelirede.com.br:1026/v2/entities' \
+    // 'http://iot.intelirede.com.br:8080/v2/entities' \
     // -H 'fiware-service: openiot' \
     // -H 'fiware-servicepath: /'
 
     // curl -G -X GET \
-    // 'http://iot.intelirede.com.br:1026/v2/entities' \
+    // 'http://iot.intelirede.com.br:8080/v2/entities' \
     // -H 'fiware-service: openiot' \
     // -H 'fiware-servicepath: /'
 
     return $.ajax({
-        url: 'http://iot.intelirede.com.br:1026/v2/entities',
+        url: 'http://iot.intelirede.com.br:8080/v2/entities',
         headers: {
             'fiware-service': 'openiot',
             'fiware-servicepath': '/'
@@ -381,9 +381,12 @@ let initListOfTasks = () => {
     };
     cardContainer.appendChild(insertButton);
 
-    resp.responseJSON.forEach((entry) => {
-        if(entry.refCasa != null) {createDeviceCard(entry);}; // removing default devices 
-    });
+    if (resp.responseJSON != null) {
+        resp.responseJSON.forEach((entry) => {
+            if(entry.refCasa != null) {createDeviceCard(entry);}; // removing default devices 
+        });
+    }
+    
     console.log("Atualizando tela");
 };
 

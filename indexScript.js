@@ -8,18 +8,18 @@ function updateDeviceList(log = 0) {
     
     if (log == 1) {
         updateRequestLog("Requisição", "curl -G -X GET \
-        'http://iot.intelirede.com.br:1026/v2/entities' \
+        'http://iot.intelirede.com.br:8080/v2/entities' \
         -H 'fiware-service: openiot' \
         -H 'fiware-servicepath: /'");
     }
 
     // curl -G -X GET \
-    // 'http://iot.intelirede.com.br:1026/v2/entities' \
+    // 'http://iot.intelirede.com.br:8080/v2/entities' \
     // -H 'fiware-service: openiot' \
     // -H 'fiware-servicepath: /'
 
     let resp = $.ajax({
-        url: 'http://iot.intelirede.com.br:1026/v2/entities',
+        url: 'http://iot.intelirede.com.br:8080/v2/entities',
         headers: {
             'fiware-service': 'openiot',
             'fiware-servicepath': '/'
@@ -99,7 +99,7 @@ function updateRequestLog(type, text) {
 
 function triggerAction (id, name, command) {
     // 'curl -iX PATCH \
-    //     "http://iot.intelirede.com.br:1026/v2/entities/urn:ngsi-ld:Cafeteira:001/attrs" \
+    //     "http://iot.intelirede.com.br:8080/v2/entities/urn:ngsi-ld:Cafeteira:001/attrs" \
     //     -H "Content-Type: application/json" \
     //     -H "fiware-service: openiot" \
     //     -H "fiware-servicepath: /" \
@@ -110,11 +110,11 @@ function triggerAction (id, name, command) {
     //     } \
     //     }'
 
-    let vURL = "http://iot.intelirede.com.br:1026/v2/entities/" + id + "/attrs";
+    let vURL = "http://iot.intelirede.com.br:8080/v2/entities/" + id + "/attrs";
     let vData = '{"' + command + '": {"type" : "command","value" : ""}}'
 
     updateRequestLog("Requisição", "curl -iX PATCH \
-    'http://iot.intelirede.com.br:1026/v2/entities/" + id + "/attrs' \
+    'http://iot.intelirede.com.br:8080/v2/entities/" + id + "/attrs' \
     -H 'Content-Type: application/json' \
     -H 'fiware-service: openiot' \
     -H 'fiware-servicepath: /' \
@@ -311,9 +311,12 @@ let initListOfTasks = (log = 0) => {
         cardContainer.innerHTML = '';
     }
     cardContainer = document.getElementById('card-container');
-    resp.responseJSON.forEach((entry) => {
-        if(entry.refCasa != null) {createDeviceCard(entry);}; // removing default devices 
-    });
+
+    if (resp.responseJSON != null) {
+        resp.responseJSON.forEach((entry) => {
+            if(entry.refCasa != null) {createDeviceCard(entry);}; // removing default devices 
+        });
+    }
     console.log("Atualizando tela");
 };
 
